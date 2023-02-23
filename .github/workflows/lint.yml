@@ -12,4 +12,5 @@ jobs:
             node-version: 17.9.x
             cache: "yarn"
       - name: Check Linting
+        run: yarn install
         run: yarn lint
