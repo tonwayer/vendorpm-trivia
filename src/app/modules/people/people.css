@@ -4,4 +4,5 @@ table {
 
 th {
   text-align: left;
+  cursor: pointer;
 }

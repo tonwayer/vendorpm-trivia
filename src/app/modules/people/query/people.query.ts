@@ -7,31 +7,126 @@ import { Person } from "../model";
 
 interface PeopleQueryState {
   loading: boolean;
-  data?: Person[];
+  data?: {
+    people: Person[],
+    totalCount: number,
+  };
   error?: AxiosError;
 }
 
-export const usePeopleQuery = (): PeopleQueryState => {
+type Order = "ascending" | "descending";
+
+interface SortConfig {
+  sortBy: string;
+  order: Order;
+}
+
+type SetState<T> = React.Dispatch<React.SetStateAction<T>>
+
+type PaginationConfig = {
+  currentPage: number,
+  peoplePerPage: number,
+}
+
+export const usePeopleQuery = (): {
+  value: PeopleQueryState;
+  useSort: () => {
+    sortConfig: SortConfig,
+    sort: (_: string) => void,
+  },
+  useFilter: () => {
+    filter: string,
+    setFilter: (_: string) => void,
+  },
+  usePagination: () => {
+    paginationConfig: PaginationConfig,
+    setPaginationConfig: SetState<PaginationConfig>
+  },
+} => {
   const axios = useAxios();
-  const [state, setState] = useState<PeopleQueryState>({ loading: false });
+  const [state, setState] = useState<PeopleQueryState>({
+    data: {
+      people: [],
+      totalCount: 0,
+    },
+    loading: false,
+  });
+  const [filter, setFilter] = useState('');
+  const [paginationConfig, setPaginationConfig] = useState({
+    currentPage: 0,
+    peoplePerPage: 10,
+  })
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    sortBy: "name",
+    order: "ascending",
+  });
 
-  const fetchPeoples = async () => {
+  const sort = (header: string) => {
+    let newOrder: Order = "ascending";
+    if (header === sortConfig.sortBy && sortConfig.order === "ascending") {
+      newOrder = "descending";
+    }
+    setSortConfig({
+      sortBy: header,
+      order: newOrder,
+    });
+  };
+
+  const fetchPeople = async () => {
     try {
-      const { data } = await axios.get<Person[]>(`/${API_RESOURCE.PEOPLE}`);
-
-      setState({ data, loading: false, error: undefined });
+      const { data } = await axios.get<{people: Person[], totalCount: number}>(`/${API_RESOURCE.PEOPLE}`, {
+        params: {
+          from: paginationConfig.currentPage * paginationConfig.peoplePerPage,
+          to: (paginationConfig.currentPage + 1) * paginationConfig.peoplePerPage - 1,
+          sortBy: sortConfig.sortBy,
+          order: sortConfig.order,
+          filter: filter,
+        },
+      });
+      setState({
+        data,
+        loading: false,
+        error: undefined,
+      });
     } catch (error) {
-      setState({ data: undefined, error: error as AxiosError, loading: false });
+      setState({
+        data: undefined,
+        loading: false,
+      });
     }
   };
 
   useEffect(() => {
-    setState({ loading: true });
+    setState({
+      ...state,
+      loading: true,
+    });
 
-    fetchPeoples();
-  }, []);
+    fetchPeople();
+  }, [sortConfig, filter, paginationConfig]);
+
+  useEffect(() => {
+    setPaginationConfig({
+      ...paginationConfig,
+      currentPage: 0,
+    })
+  }, [filter]);
 
   const value = useMemo(() => state, [state]);
 
-  return value;
+  return {
+    value,
+    useSort: () => ({
+      sortConfig,
+      sort,
+    }),
+    useFilter: () => ({
+      filter,
+      setFilter: (filter: string) => setFilter(filter),
+    }),
+    usePagination: () => ({
+      paginationConfig,
+      setPaginationConfig
+    })
+  };
 };

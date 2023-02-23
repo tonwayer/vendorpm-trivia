@@ -45,6 +45,9 @@ describe("People", () => {
      * You can do so for this test
      */
 
+    server.use(
+      rest.get(getPeople.info.path, (_, res, ctx) => res(ctx.json([])))
+    );
     await renderPeople();
 
     expect(screen.getByText("No People Available.")).toBeInTheDocument();
@@ -52,7 +55,6 @@ describe("People", () => {
 
   test("should display 10 people by default", async () => {
     await renderPeople();
-
     expect(screen.getByRole("table")).toBeInTheDocument();
 
     expect(screen.getAllByRole("row").slice(1)).toHaveLength(10);
