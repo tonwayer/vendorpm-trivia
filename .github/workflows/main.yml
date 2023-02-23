@@ -24,7 +24,7 @@ jobs:
       #   run: yarn prettier -c . // DON'T HAVE TO USE PRETTIER
 
       - name: Check Linting // BONUS TASK
-        run: yarn eslint --ignore-path .gitignore src // DON'T HAVE TO USE ESLINT
+        run: yarn eslint --ignore-path .gitignore src
 
       - name: Run Unit and Integration Tests
         run: yarn test run
